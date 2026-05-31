@@ -13,10 +13,11 @@ import AddPortfolioModal from '@/components/AddPortfolioModal';
 import RealYieldModal from '@/components/RealYieldModal';
 import SkeletonDashboard from '@/components/SkeletonDashboard';
 import { BASE_PORTFOLIO, DEMO_PORTFOLIOS } from '@/lib/demo-data';
-import { deriveView, makePortfolioFromKey, RY_DEFAULTS, realYield } from '@/lib/real-yield';
+import { deriveView, makePortfolioFromKey, RY_DEFAULTS, calcIISDeduction } from '@/lib/real-yield';
 import { useTinkoffPortfolio } from '@/hooks/useTinkoffPortfolio';
 import { fmt } from '@/lib/format';
 import type { PortfolioProfile, TipState, RYOpts } from '@/types';
+import { Icon } from '@/components/icons';
 
 const HEX: Record<string, { c: string; d: string }> = {
   blue:   { c: '#006FEE', d: '#005bc4' },
@@ -179,7 +180,7 @@ export default function Dashboard() {
     sum: portfolioData.sum ?? baseView.sum,
   } : baseView;
 
-  const ry = realYield(prof, ryOpts);
+  const iisDeduction = calcIISDeduction(ryOpts);
 
   const theme = dark === false ? 'light' : 'dark';
 
@@ -231,11 +232,29 @@ export default function Dashboard() {
           <TabsNav tabs={TABS} active={tab} onChange={setTab} />
         </div>
 
+        {activeToken && tinkoffError && !tinkoffLoading && (
+          <div className="error-banner">
+            <Icon name="alert" size={18} />
+            <div>
+              <strong>
+                {/401|403|Unauthenticated|Unauthorized/i.test(tinkoffError)
+                  ? 'Неверный API-ключ'
+                  : 'Ошибка загрузки данных'}
+              </strong>
+              <p>
+                {/401|403|Unauthenticated|Unauthorized/i.test(tinkoffError)
+                  ? 'Ключ не принят T-Invest API. Проверьте токен в настройках — возможно, он устарел или введён с ошибкой.'
+                  : tinkoffError}
+              </p>
+            </div>
+          </div>
+        )}
+
         {tab === 'overview' && tinkoffLoading && <SkeletonDashboard />}
 
         {tab === 'overview' && !tinkoffLoading && (
           <div className="grid">
-            <KpiRow P={P} ry={ry} onOpenRY={() => setRyModal(true)} />
+            <KpiRow P={P} iisDeduction={ryOpts.useIIS ? iisDeduction : 0} onOpenRY={() => setRyModal(true)} />
 
             {/* Main chart */}
             <div className="card col-8">
@@ -295,7 +314,7 @@ export default function Dashboard() {
 
       <ChartTip tip={tip} />
       <AddPortfolioModal open={modal} onClose={() => setModal(false)} onConnect={addPortfolio} />
-      <RealYieldModal open={ryModal} onClose={() => setRyModal(false)} prof={prof} opts={ryOpts} setOpts={setRyOpts} />
+      <RealYieldModal open={ryModal} onClose={() => setRyModal(false)} opts={ryOpts} setOpts={setRyOpts} totalValue={P.totalValue} invested={P.invested} />
     </div>
   );
 }

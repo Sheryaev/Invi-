@@ -1,34 +1,45 @@
 'use client';
 import { useEffect } from 'react';
 import { Icon } from './icons';
-import { realYield } from '@/lib/real-yield';
-import type { PortfolioProfile, RYOpts } from '@/types';
+import { calcIISDeduction } from '@/lib/real-yield';
+import type { RYOpts } from '@/types';
 import { fmt } from '@/lib/format';
 
-function Switch({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      disabled={disabled}
-      className={'switch' + (checked ? ' on' : '') + (disabled ? ' disabled' : '')}
-      onClick={() => !disabled && onChange(!checked)}
-    >
-      <span className="switch-knob" />
-    </button>
+      className={'switch' + (checked ? ' on' : '')}
+      onClick={() => onChange(!checked)}
+    />
+  );
+}
+
+function NumInput({ value, onChange, placeholder }: { value: number; onChange: (v: number) => void; placeholder?: string }) {
+  return (
+    <input
+      type="number"
+      min={0}
+      step={1000}
+      value={value || ''}
+      placeholder={placeholder ?? '0'}
+      onChange={e => onChange(Math.max(0, Number(e.target.value) || 0))}
+    />
   );
 }
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  prof: PortfolioProfile;
   opts: RYOpts;
   setOpts: (o: RYOpts) => void;
+  totalValue: number;
+  invested: number;
 }
 
-export default function RealYieldModal({ open, onClose, prof, opts, setOpts }: Props) {
+export default function RealYieldModal({ open, onClose, opts, setOpts, totalValue, invested }: Props) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     if (open) document.addEventListener('keydown', h);
@@ -37,14 +48,15 @@ export default function RealYieldModal({ open, onClose, prof, opts, setOpts }: P
 
   if (!open) return null;
 
-  const ry = realYield(prof, opts);
-  const toggle = (k: keyof RYOpts) => setOpts({ ...opts, [k]: !opts[k] });
+  const prevYear = new Date().getFullYear() - 1;
+  const portfolioResult = totalValue - invested;
+  const portfolioPct = invested > 0 ? (portfolioResult / invested) * 100 : 0;
+  const iisDeduction = calcIISDeduction(opts);
+  const totalResult = portfolioResult + (opts.useIIS ? iisDeduction : 0);
+  const totalPct = invested > 0 ? (totalResult / invested) * 100 : 0;
+  const totalUp = totalResult >= 0;
 
-  const TOGGLES: Array<{ k: keyof RYOpts; label: string; note: string; disabled?: boolean }> = [
-    { k: 'reinvestDiv', label: 'Реинвестировать дивиденды', note: 'сложный процент на выплаты' },
-    { k: 'useIIS', label: 'Учитывать вычет ИИС', note: ry.hasIIS ? 'налоговый вычет 13%' : 'счёт не на ИИС', disabled: !ry.hasIIS },
-    { k: 'reinvestTax', label: 'Реинвестировать вычет', note: 'вкладывать возврат налога', disabled: !ry.hasIIS || !opts.useIIS },
-  ];
+  const set = (k: keyof RYOpts, v: any) => setOpts({ ...opts, [k]: v });
 
   return (
     <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -55,36 +67,67 @@ export default function RealYieldModal({ open, onClose, prof, opts, setOpts }: P
           </div>
           <div>
             <div className="modal-title">Настройки доходности</div>
-            <div className="modal-sub">{prof.name} · с учётом вашей стратегии</div>
+            <div className="modal-sub">Инвестиционный результат с учётом ИИС</div>
           </div>
           <button className="modal-x" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
 
-        <div className="ry-hero">
-          <span className="ry-hero-val tnum" style={{ color: ry.total >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-            {fmt.pct(ry.total, { sign: true })}
-          </span>
-          <span className="ry-hero-cap">
-            <span className="tnum">{fmt.pct(ry.market, { sign: true })}</span> рынок
-            <span className="ry-dotsep">·</span>
-            <span className={'tnum ' + (ry.strategy >= 0 ? 'ry-pos' : 'ry-neg')}>{fmt.pct(ry.strategy, { sign: true })}</span> стратегия
-          </span>
+        {/* Результат портфеля */}
+        <div className="ry-section">
+          <div className="ry-section-title">Результат портфеля</div>
+          <div className="ry-stat-row">
+            <span>Стоимость сейчас</span>
+            <span className="tnum">{fmt.rubK(totalValue)}</span>
+          </div>
+          <div className="ry-stat-row">
+            <span>Пополнения (инвестировано)</span>
+            <span className="tnum">{fmt.rubK(invested)}</span>
+          </div>
+          <div className="ry-stat-row">
+            <span>Результат без ИИС</span>
+            <span className={'tnum ' + (portfolioResult >= 0 ? 'ry-pos' : 'ry-neg')}>
+              {fmt.rub(portfolioResult, { sign: true })} ({fmt.pct(portfolioPct, { sign: true })})
+            </span>
+          </div>
         </div>
 
-        <div className="ry-settings">
-          {TOGGLES.map(tg => (
-            <label className={'ry-toggle' + (tg.disabled ? ' is-disabled' : '')} key={tg.k}>
-              <div className="ry-toggle-tx">
-                <span className="ry-toggle-label">{tg.label}</span>
-                <span className="ry-toggle-note">{tg.note}</span>
-              </div>
-              <Switch
-                checked={!!opts[tg.k] && !tg.disabled}
-                disabled={tg.disabled}
-                onChange={() => toggle(tg.k)}
-              />
-            </label>
-          ))}
+        {/* Вычет ИИС */}
+        <div className="ry-section">
+          <div className="ry-section-title">Вычет ИИС типа А ({prevYear} год)</div>
+          <div className="ry-input-row">
+            <label>Взносы на ИИС за {prevYear} год</label>
+            <NumInput value={opts.iisContribs} onChange={v => set('iisContribs', v)} placeholder="например 400 000" />
+          </div>
+          <div className="ry-input-row">
+            <label>Уплаченный НДФЛ (необязательно)</label>
+            <NumInput value={opts.ndflPaid} onChange={v => set('ndflPaid', v)} placeholder="0 = без ограничения" />
+          </div>
+          {iisDeduction > 0 && (
+            <div className="ry-deduction">
+              <span>Расчётный вычет: min({fmt.rubK(opts.iisContribs)}, 400 000 ₽) × 13%</span>
+              <span>{fmt.rub(iisDeduction)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Тогл */}
+        <div className="ry-section">
+          <label className="ry-toggle" style={{ cursor: 'pointer' }}>
+            <div className="ry-toggle-tx">
+              <span className="ry-toggle-label">Учитывать вычет ИИС в результате</span>
+              <span className="ry-toggle-note">добавить возврат налога к инвестиционному результату</span>
+            </div>
+            <Switch checked={opts.useIIS} onChange={v => set('useIIS', v)} />
+          </label>
+
+          {opts.useIIS && (
+            <div className="ry-total-row">
+              <span>Итоговый результат с ИИС</span>
+              <span className={'tnum ' + (totalUp ? 'ry-pos' : 'ry-neg')}>
+                {fmt.rub(totalResult, { sign: true })} ({fmt.pct(totalPct, { sign: true })})
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

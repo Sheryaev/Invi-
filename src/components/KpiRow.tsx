@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Icon, Tri } from './icons';
-import type { Portfolio, RYResult } from '@/types';
+import type { Portfolio } from '@/types';
 import { fmt } from '@/lib/format';
 
 function KpiCard({ icon, iconColor, label, value, delta, deltaUp, sub, action, onClick }: {
@@ -33,8 +33,12 @@ function KpiCard({ icon, iconColor, label, value, delta, deltaUp, sub, action, o
   );
 }
 
-function ResultCard({ P, profit, hidden, onOpenRY }: { P: Portfolio; profit: number; hidden: boolean; onOpenRY: () => void }) {
-  const up = profit >= 0;
+function ResultCard({ P, profit, iisDeduction, hidden, onOpenRY }: {
+  P: Portfolio; profit: number; iisDeduction: number; hidden: boolean; onOpenRY: () => void;
+}) {
+  const displayProfit = profit + iisDeduction;
+  const displayPct = P.invested > 0 ? (displayProfit / P.invested) * 100 : P.totalReturnPct;
+  const up = displayProfit >= 0;
   const dayUp = P.dayChange >= 0;
 
   return (
@@ -43,7 +47,7 @@ function ResultCard({ P, profit, hidden, onOpenRY }: { P: Portfolio; profit: num
         <span className="kpi2-ic" style={{ color: up ? 'var(--success)' : 'var(--danger)' }}>
           <Icon name="trend" size={15} stroke={2} />
         </span>
-        <span className="kpi2-label">Результат портфеля</span>
+        <span className="kpi2-label">Результат портфеля{iisDeduction > 0 ? ' + ИИС' : ''}</span>
         <button className="kpi2-eye kpi2-gear" onClick={e => { e.stopPropagation(); onOpenRY(); }} title="Настройки доходности">
           <Icon name="settings" size={16} />
         </button>
@@ -51,10 +55,10 @@ function ResultCard({ P, profit, hidden, onOpenRY }: { P: Portfolio; profit: num
       <div className="result-body">
         <div className="result-main">
           <span className="result-big tnum">
-            {hidden ? '••• •••' : (up ? '+' : '−') + fmt.rubK(Math.abs(profit))}
+            {hidden ? '••• •••' : (up ? '+' : '−') + fmt.rubK(Math.abs(displayProfit))}
           </span>
           <span className={'delta ' + (up ? 'up' : 'down')} style={{ fontSize: 14 }}>
-            <Tri up={up} size={10} /> {fmt.pct(P.totalReturnPct, { sign: true })} <span className="delta-cap">доходность</span>
+            <Tri up={up} size={10} /> {fmt.pct(displayPct, { sign: true })} <span className="delta-cap">доходность</span>
           </span>
         </div>
         <div className="result-divider" />
@@ -83,11 +87,11 @@ function ResultCard({ P, profit, hidden, onOpenRY }: { P: Portfolio; profit: num
 
 interface KpiRowProps {
   P: Portfolio;
-  ry: RYResult;
+  iisDeduction: number;
   onOpenRY: () => void;
 }
 
-export default function KpiRow({ P, ry, onOpenRY }: KpiRowProps) {
+export default function KpiRow({ P, iisDeduction, onOpenRY }: KpiRowProps) {
   const [hidden, setHidden] = useState(false);
   const profit = P.totalValue - P.invested;
 
@@ -104,7 +108,7 @@ export default function KpiRow({ P, ry, onOpenRY }: KpiRowProps) {
         value={hidden ? '••• •••' : fmt.rubK(P.totalValue)}
         sub={<span>{hidden ? '••• ••• вложено' : fmt.rubK(P.invested) + ' вложено'}</span>}
       />
-      <ResultCard P={P} profit={profit} hidden={hidden} onOpenRY={onOpenRY} />
+      <ResultCard P={P} profit={profit} iisDeduction={iisDeduction} hidden={hidden} onOpenRY={onOpenRY} />
       <KpiCard
         icon="coins" iconColor="var(--primary)"
         label="Пассивный доход"

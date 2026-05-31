@@ -1,45 +1,24 @@
 import type { PortfolioProfile, RYOpts, RYResult } from '@/types';
 
 export const RY_DEFAULTS: RYOpts = {
-  useIIS: true,
-  reinvestDiv: true,
-  reinvestTax: true,
+  useIIS: false,
+  iisContribs: 0,
+  ndflPaid: 0,
 };
 
+/** Считает размер вычета ИИС типа А (на взнос): min(взносы, 400 000) × 13%, но не больше ndflPaid */
+export function calcIISDeduction(opts: RYOpts): number {
+  if (!opts.iisContribs || opts.iisContribs <= 0) return 0;
+  const raw = Math.min(opts.iisContribs, 400_000) * 0.13;
+  if (opts.ndflPaid > 0) return Math.min(raw, opts.ndflPaid);
+  return Math.round(raw);
+}
+
 export function realYield(prof: PortfolioProfile, opts?: Partial<RYOpts>): RYResult {
-  const o: RYOpts = { ...RY_DEFAULTS, ...opts };
-  const ry = prof.ry || { div: 1.6, divReinv: 0.4, iis: 1.2, iisReinv: 0.3, infl: 1.0 };
-  const r1 = (n: number) => Math.round(n * 10) / 10;
   const parts: RYResult['parts'] = [];
-
-  parts.push({
-    key: 'market',
-    label: 'Базовая доходность',
-    note: 'рост стоимости активов',
-    val: prof.ret,
-  });
-
-  parts.push({
-    key: 'div',
-    label: 'Дивиденды и купоны',
-    note: o.reinvestDiv ? 'с реинвестированием' : 'без реинвестирования',
-    val: r1(ry.div + (o.reinvestDiv ? ry.divReinv : 0)),
-  });
-
-  const hasIIS = ry.iis > 0;
-  if (o.useIIS && hasIIS) {
-    parts.push({
-      key: 'iis',
-      label: 'Налоговый вычет ИИС',
-      note: o.reinvestTax ? 'вычет реинвестирован' : 'разовый вычет',
-      val: r1(ry.iis + (o.reinvestTax ? ry.iisReinv : 0)),
-    });
-  }
-
-  const total = r1(parts.reduce((s, p) => s + p.val, 0));
-  const strategy = r1(total - prof.ret);
-
-  return { parts, total, market: prof.ret, strategy, hasIIS };
+  parts.push({ key: 'market', label: 'Базовая доходность', note: 'рост стоимости активов', val: prof.ret });
+  const total = parts.reduce((s, p) => s + p.val, 0);
+  return { parts, total, market: prof.ret, strategy: 0, hasIIS: false };
 }
 
 export function deriveView(base: any, prof: any) {

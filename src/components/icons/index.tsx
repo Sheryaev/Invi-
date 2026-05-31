@@ -6,7 +6,7 @@ type IconName =
   | 'pie' | 'search' | 'bell' | 'settings' | 'sun' | 'moon' | 'trend'
   | 'arrowUp' | 'arrowDown' | 'plus' | 'sort' | 'download' | 'filter'
   | 'chevron' | 'logout' | 'spark' | 'info' | 'eye' | 'eyeOff' | 'percent'
-  | 'check' | 'layers' | 'key' | 'trash' | 'close' | 'link' | 'refresh';
+  | 'check' | 'layers' | 'key' | 'trash' | 'close' | 'link' | 'refresh' | 'alert';
 
 const ICON_PATHS: Record<IconName, React.ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></>,
@@ -42,6 +42,7 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
   close: <path d="M6 6l12 12M18 6 6 18"/>,
   link: <><path d="M9 15l6-6"/><path d="M11 6.5 12.8 4.7a4 4 0 0 1 5.7 5.7L16.6 12M12.8 17.5 11 19.3a4 4 0 0 1-5.7-5.7L7.2 12"/></>,
   refresh: <><path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 4v6h-6"/></>,
+  alert: <><path d="M10.3 3.4 2 20h20L13.7 3.4a2 2 0 0 0-3.4 0Z"/><path d="M12 9v5M12 16.5v.5"/></>,
 };
 
 interface IconProps {
