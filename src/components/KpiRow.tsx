@@ -96,7 +96,7 @@ export default function KpiRow({ P, iisDeduction, onOpenRY }: KpiRowProps) {
   const profit = P.totalValue - P.invested;
 
   return (
-    <>
+    <div className="kpi-row">
       <KpiCard
         action={
           <button className="kpi2-eye" onClick={e => { e.stopPropagation(); setHidden(h => !h); }} title={hidden ? 'Показать' : 'Скрыть'}>
@@ -116,6 +116,6 @@ export default function KpiRow({ P, iisDeduction, onOpenRY }: KpiRowProps) {
         delta={'+' + P.passiveYoY + '%'} deltaUp={true}
         sub={<span>{fmt.rubK(P.sum.total)}/год <span className="ry-dotsep">·</span> {fmt.rubK(P.sum.total / 12)}/мес</span>}
       />
-    </>
+    </div>
   );
 }

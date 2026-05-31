@@ -137,6 +137,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);-webkit-font-s
 /* Content */
 .content{padding:26px 24px 56px;}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);}
+.kpi-row{grid-column:span 12;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);}
 .col-3{grid-column:span 3;}
 .col-4{grid-column:span 4;}
 .col-5{grid-column:span 5;}
@@ -369,10 +370,9 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);-webkit-font-s
 /* Responsive */
 @media(max-width:1080px){
   .col-3{grid-column:span 6;}
-  /* Результат портфеля переносится на новую строку полной шириной,
-     Стоимость + Пассивный доход остаются рядом в первой строке */
-  .kpi-result{grid-column:span 12;order:3;}
-  .kpi-result+.card{order:2;}
+  /* Внутри kpi-row: Результат уходит вниз, Пассивный доход поднимается вверх */
+  .kpi-row .kpi-result{grid-column:span 12;order:3;}
+  .kpi-row .kpi-result+.card{order:2;}
 }
 @media(max-width:920px){.col-8{grid-column:span 12;}.col-4{grid-column:span 12;}.col-5,.col-7{grid-column:span 12;}.col-6{grid-column:span 12;}}
 @media(max-width:560px){.col-3{grid-column:span 12;}.page-bar{flex-direction:column;gap:12px;}}
