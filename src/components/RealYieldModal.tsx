@@ -24,11 +24,10 @@ interface Props {
   setOpts: (o: RYOpts) => void;
   totalValue: number;
   invested: number;
+  depositsByYear: Record<string, number>;
 }
 
-const YEARS_SHOWN = 5; // сколько прошлых лет показывать
-
-export default function RealYieldModal({ open, onClose, opts, setOpts, totalValue, invested }: Props) {
+export default function RealYieldModal({ open, onClose, opts, setOpts, totalValue, invested, depositsByYear }: Props) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     if (open) document.addEventListener('keydown', h);
@@ -37,21 +36,19 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
 
   if (!open) return null;
 
-  const currentYear  = new Date().getFullYear();
-  const years        = Array.from({ length: YEARS_SHOWN }, (_, i) => currentYear - 1 - i);
-  const iisYears     = opts.iisYears ?? {};
   const baseResult   = totalValue - invested;
-  const iisDeduction = calcIISDeduction(iisYears);
+  const iisDeduction = calcIISDeduction(depositsByYear);
   const totalResult  = baseResult + (opts.useIIS ? iisDeduction : 0);
   const totalPct     = invested > 0 ? (totalResult / invested) * 100 : 0;
   const up           = totalResult >= 0;
 
-  const setYear = (year: number, value: number) => {
-    const next = { ...iisYears };
-    if (value > 0) next[year] = value;
-    else delete next[year];
-    setOpts({ ...opts, iisYears: next });
-  };
+  // Только годы где есть пополнения, отсортированные по убыванию
+  const years = Object.keys(depositsByYear)
+    .map(Number)
+    .filter(y => depositsByYear[String(y)] > 0)
+    .sort((a, b) => b - a);
+
+  const hasData = years.length > 0;
 
   return (
     <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -70,7 +67,7 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
 
         <div className="ry-body">
 
-          {/* Итоговый результат */}
+          {/* Итог — обновляется при тогле */}
           <div className="ry-result-hero">
             <div className="ry-result-val tnum" style={{ color: up ? 'var(--success)' : 'var(--danger)' }}>
               {fmt.rub(totalResult, { sign: true })}
@@ -107,48 +104,51 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
             )}
           </div>
 
-          {/* ИИС по годам */}
+          {/* ИИС секция */}
           <div className="ry-iis-block">
             <div className="ry-iis-header">
               <div>
                 <div className="ry-iis-title">Налоговый вычет ИИС</div>
-                <div className="ry-iis-hint">Укажите взносы за каждый год — вычет = min(сумма, 400 000) × 13%</div>
+                <div className="ry-iis-hint">
+                  {hasData
+                    ? 'Пополнения по годам из истории операций'
+                    : 'Нет данных о пополнениях — подключите реальный портфель'}
+                </div>
               </div>
-              <Switch checked={opts.useIIS} onChange={v => setOpts({ ...opts, useIIS: v })} />
+              <Switch
+                checked={opts.useIIS && hasData}
+                onChange={v => setOpts({ ...opts, useIIS: v })}
+              />
             </div>
 
-            <div className="ry-years">
-              {years.map(year => {
-                const contrib  = iisYears[year] ?? 0;
-                const deduct   = calcYearDeduction(contrib);
-                return (
-                  <div className="ry-year-row" key={year}>
-                    <span className="ry-year-label">{year}</span>
-                    <div className="ry-iis-input-wrap">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={contrib || ''}
-                        placeholder="0"
-                        onChange={e => setYear(year, Math.max(0, Number(e.target.value) || 0))}
-                        className="ry-iis-input tnum"
-                      />
-                      <span className="ry-iis-currency">₽</span>
-                    </div>
-                    <span className={'ry-year-deduct tnum ' + (deduct > 0 ? 'ry-pos' : '')}>
-                      {deduct > 0 ? '+' + fmt.rub(deduct) : '—'}
-                    </span>
+            {hasData && (
+              <>
+                <div className="ry-years-table">
+                  <div className="ry-years-head">
+                    <span>Год</span>
+                    <span>Пополнения</span>
+                    <span>Вычет 13%</span>
                   </div>
-                );
-              })}
-            </div>
+                  {years.map(year => {
+                    const contrib = depositsByYear[String(year)] ?? 0;
+                    const deduct  = calcYearDeduction(contrib);
+                    return (
+                      <div className="ry-year-row" key={year}>
+                        <span className="ry-year-label">{year}</span>
+                        <span className="tnum">{fmt.rubK(contrib)}</span>
+                        <span className="tnum ry-pos">+{fmt.rub(deduct)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
 
-            {iisDeduction > 0 && (
-              <div className="ry-iis-total">
-                <span>Итого вычетов</span>
-                <span className="tnum ry-pos">+{fmt.rub(iisDeduction)}</span>
-              </div>
+                {iisDeduction > 0 && (
+                  <div className="ry-iis-total">
+                    <span>Итого вычетов</span>
+                    <span className="tnum ry-pos">+{fmt.rub(iisDeduction)}</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

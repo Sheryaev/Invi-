@@ -178,9 +178,10 @@ export default function Dashboard() {
     upcoming: portfolioData.upcoming ?? [],
     months: portfolioData.months ?? baseView.months,
     sum: portfolioData.sum ?? baseView.sum,
+    depositsByYear: portfolioData.depositsByYear ?? {},
   } : baseView;
 
-  const iisDeduction = calcIISDeduction(ryOpts.iisYears ?? {});
+  const iisDeduction = calcIISDeduction(P.depositsByYear ?? {});
 
   const theme = dark === false ? 'light' : 'dark';
 
@@ -314,7 +315,7 @@ export default function Dashboard() {
 
       <ChartTip tip={tip} />
       <AddPortfolioModal open={modal} onClose={() => setModal(false)} onConnect={addPortfolio} />
-      <RealYieldModal open={ryModal} onClose={() => setRyModal(false)} opts={ryOpts} setOpts={setRyOpts} totalValue={P.totalValue} invested={P.invested} />
+      <RealYieldModal open={ryModal} onClose={() => setRyModal(false)} opts={ryOpts} setOpts={setRyOpts} totalValue={P.totalValue} invested={P.invested} depositsByYear={P.depositsByYear ?? {}} />
     </div>
   );
 }

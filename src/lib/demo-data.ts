@@ -6,6 +6,7 @@ export const BASE_PORTFOLIO: Portfolio = {
   dayChange: 58200,
   dayChangePct: 1.21,
   invested: 4098000,
+  depositsByYear: {},
   totalReturnPct: 18.4,
   monthReturnPct: 2.3,
   yieldPct: 8.0,

@@ -63,6 +63,7 @@ export interface SectorItem {
 export interface Portfolio {
   currency: string;
   totalValue: number;
+  depositsByYear: Record<string, number>;
   dayChange: number;
   dayChangePct: number;
   invested: number;
@@ -117,7 +118,6 @@ export interface PortfolioProfile {
 
 export interface RYOpts {
   useIIS: boolean;
-  iisYears: Record<string, number>; // год -> взносы на ИИС за этот год
 }
 
 export interface RYResult {

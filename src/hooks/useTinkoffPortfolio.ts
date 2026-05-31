@@ -74,6 +74,7 @@ export function useTinkoffPortfolio(token: string | null) {
           holdings: portData.holdings ?? [],
           gainers: portData.gainers ?? [],
           losers: portData.losers ?? [],
+          depositsByYear: portData.depositsByYear ?? {},
           months: months.length > 0 ? months : undefined,
           sum: { paid, announced, forecast, total: paid + announced + forecast },
           upcoming: divData?.upcoming ?? [],

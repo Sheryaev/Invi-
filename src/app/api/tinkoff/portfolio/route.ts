@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPortfolio, getLastPrices, getInstrumentBy, getCandles, moneyToNumber } from '@/lib/tinkoff';
+import { getPortfolio, getLastPrices, getInstrumentBy, getCandles, getOperations, moneyToNumber } from '@/lib/tinkoff';
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -105,6 +105,26 @@ export async function POST(req: NextRequest) {
     const gainers = sorted.filter(m => m.pct > 0).slice(0, 5);
     const losers = [...movers].sort((a, b) => a.pct - b.pct).filter(m => m.pct < 0).slice(0, 5);
 
+    // Deposits per year — fetch INPUT operations for the last 5 past years
+    const currentYear = new Date().getFullYear();
+    const pastYears = Array.from({ length: 5 }, (_, i) => currentYear - 1 - i);
+    const depositsByYear: Record<string, number> = {};
+
+    await Promise.all(pastYears.map(async year => {
+      try {
+        const from = new Date(year, 0, 1).toISOString();
+        const to   = new Date(year + 1, 0, 1).toISOString();
+        const ops  = await getOperations(token, accountId, from, to);
+        let total  = 0;
+        for (const op of ops.operations || []) {
+          if (op.operationType === 'OPERATION_TYPE_INPUT') {
+            total += moneyToNumber(op.payment);
+          }
+        }
+        if (total > 0) depositsByYear[String(year)] = Math.round(total);
+      } catch { /* ignore per-year errors */ }
+    }));
+
     return NextResponse.json({
       totalValue,
       invested,
@@ -114,6 +134,7 @@ export async function POST(req: NextRequest) {
       holdings,
       gainers,
       losers,
+      depositsByYear,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
