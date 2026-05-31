@@ -11,7 +11,7 @@ export default function Upcoming({ P }: { P: Portfolio }) {
           <div className="card-sub">Прогноз поступлений</div>
         </div>
       </div>
-      {P.upcoming.map((u, i) => (
+      {P.upcoming.slice(0, 5).map((u, i) => (
         <div className="row" key={i}>
           <div className="daypill">
             <div className="d">{u.day}</div>
