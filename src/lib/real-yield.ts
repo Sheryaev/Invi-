@@ -2,12 +2,13 @@ import type { PortfolioProfile, RYOpts, RYResult } from '@/types';
 
 export const RY_DEFAULTS: RYOpts = {
   useIIS: false,
+  iisContribs: 0,
 };
 
-/** Считает вычет ИИС типа А на основе суммы пополнений: min(invested, 400 000) × 13% */
-export function calcIISDeduction(invested: number): number {
-  if (!invested || invested <= 0) return 0;
-  return Math.round(Math.min(invested, 400_000) * 0.13);
+/** Считает вычет ИИС типа А: min(взносы за год, 400 000) × 13% */
+export function calcIISDeduction(iisContribs: number): number {
+  if (!iisContribs || iisContribs <= 0) return 0;
+  return Math.round(Math.min(iisContribs, 400_000) * 0.13);
 }
 
 export function realYield(prof: PortfolioProfile, opts?: Partial<RYOpts>): RYResult {

@@ -180,7 +180,7 @@ export default function Dashboard() {
     sum: portfolioData.sum ?? baseView.sum,
   } : baseView;
 
-  const iisDeduction = calcIISDeduction(P.invested);
+  const iisDeduction = calcIISDeduction(ryOpts.iisContribs);
 
   const theme = dark === false ? 'light' : 'dark';
 
