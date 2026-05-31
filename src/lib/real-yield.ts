@@ -2,13 +2,18 @@ import type { PortfolioProfile, RYOpts, RYResult } from '@/types';
 
 export const RY_DEFAULTS: RYOpts = {
   useIIS: false,
-  iisContribs: 0,
+  iisYears: {},
 };
 
-/** Считает вычет ИИС типа А: min(взносы за год, 400 000) × 13% */
-export function calcIISDeduction(iisContribs: number): number {
-  if (!iisContribs || iisContribs <= 0) return 0;
-  return Math.round(Math.min(iisContribs, 400_000) * 0.13);
+/** Считает вычет ИИС типа А за один год: min(взносы, 400 000) × 13% */
+export function calcYearDeduction(contrib: number): number {
+  if (!contrib || contrib <= 0) return 0;
+  return Math.round(Math.min(contrib, 400_000) * 0.13);
+}
+
+/** Суммарный вычет по всем годам */
+export function calcIISDeduction(iisYears: Record<string, number>): number {
+  return Object.values(iisYears).reduce((sum, c) => sum + calcYearDeduction(c), 0);
 }
 
 export function realYield(prof: PortfolioProfile, opts?: Partial<RYOpts>): RYResult {

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { Icon } from './icons';
-import { calcIISDeduction } from '@/lib/real-yield';
+import { calcYearDeduction, calcIISDeduction } from '@/lib/real-yield';
 import type { RYOpts } from '@/types';
 import { fmt } from '@/lib/format';
 
@@ -26,6 +26,8 @@ interface Props {
   invested: number;
 }
 
+const YEARS_SHOWN = 5; // сколько прошлых лет показывать
+
 export default function RealYieldModal({ open, onClose, opts, setOpts, totalValue, invested }: Props) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -35,20 +37,26 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
 
   if (!open) return null;
 
-  const prevYear     = new Date().getFullYear() - 1;
+  const currentYear  = new Date().getFullYear();
+  const years        = Array.from({ length: YEARS_SHOWN }, (_, i) => currentYear - 1 - i);
+  const iisYears     = opts.iisYears ?? {};
   const baseResult   = totalValue - invested;
-  const iisDeduction = calcIISDeduction(opts.iisContribs);
+  const iisDeduction = calcIISDeduction(iisYears);
   const totalResult  = baseResult + (opts.useIIS ? iisDeduction : 0);
   const totalPct     = invested > 0 ? (totalResult / invested) * 100 : 0;
   const up           = totalResult >= 0;
 
-  const set = (k: keyof RYOpts, v: any) => setOpts({ ...opts, [k]: v });
+  const setYear = (year: number, value: number) => {
+    const next = { ...iisYears };
+    if (value > 0) next[year] = value;
+    else delete next[year];
+    setOpts({ ...opts, iisYears: next });
+  };
 
   return (
     <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal ry-modal" role="dialog" aria-modal="true">
 
-        {/* Header */}
         <div className="modal-head">
           <div className="modal-ic" style={{ background: 'var(--secondary-soft)', color: 'var(--secondary)' }}>
             <Icon name="settings" size={18} stroke={1.9} />
@@ -61,6 +69,7 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
         </div>
 
         <div className="ry-body">
+
           {/* Итоговый результат */}
           <div className="ry-result-hero">
             <div className="ry-result-val tnum" style={{ color: up ? 'var(--success)' : 'var(--danger)' }}>
@@ -92,41 +101,58 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
             </div>
             {opts.useIIS && iisDeduction > 0 && (
               <div className="ry-br-row">
-                <span>Вычет ИИС за {prevYear} г.</span>
+                <span>Вычеты ИИС (итого)</span>
                 <span className="tnum ry-pos">+{fmt.rub(iisDeduction)}</span>
               </div>
             )}
           </div>
 
-          {/* Поле ввода + тогл */}
+          {/* ИИС по годам */}
           <div className="ry-iis-block">
             <div className="ry-iis-header">
-              <span className="ry-iis-title">Вычет ИИС за {prevYear} год</span>
-              <Switch checked={opts.useIIS} onChange={v => set('useIIS', v)} />
-            </div>
-            <div className="ry-iis-field">
-              <label className="ry-iis-label">Взносы на ИИС в {prevYear} году</label>
-              <div className="ry-iis-input-wrap">
-                <input
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={opts.iisContribs || ''}
-                  placeholder="0"
-                  onChange={e => set('iisContribs', Math.max(0, Number(e.target.value) || 0))}
-                  className="ry-iis-input tnum"
-                />
-                <span className="ry-iis-currency">₽</span>
+              <div>
+                <div className="ry-iis-title">Налоговый вычет ИИС</div>
+                <div className="ry-iis-hint">Укажите взносы за каждый год — вычет = min(сумма, 400 000) × 13%</div>
               </div>
+              <Switch checked={opts.useIIS} onChange={v => setOpts({ ...opts, useIIS: v })} />
             </div>
-            {opts.iisContribs > 0 && (
-              <div className="ry-iis-calc">
-                min({fmt.rubK(opts.iisContribs)}, 400 000 ₽) × 13% = <strong>{fmt.rub(iisDeduction)}</strong>
+
+            <div className="ry-years">
+              {years.map(year => {
+                const contrib  = iisYears[year] ?? 0;
+                const deduct   = calcYearDeduction(contrib);
+                return (
+                  <div className="ry-year-row" key={year}>
+                    <span className="ry-year-label">{year}</span>
+                    <div className="ry-iis-input-wrap">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1000}
+                        value={contrib || ''}
+                        placeholder="0"
+                        onChange={e => setYear(year, Math.max(0, Number(e.target.value) || 0))}
+                        className="ry-iis-input tnum"
+                      />
+                      <span className="ry-iis-currency">₽</span>
+                    </div>
+                    <span className={'ry-year-deduct tnum ' + (deduct > 0 ? 'ry-pos' : '')}>
+                      {deduct > 0 ? '+' + fmt.rub(deduct) : '—'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {iisDeduction > 0 && (
+              <div className="ry-iis-total">
+                <span>Итого вычетов</span>
+                <span className="tnum ry-pos">+{fmt.rub(iisDeduction)}</span>
               </div>
             )}
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );

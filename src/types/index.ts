@@ -117,7 +117,7 @@ export interface PortfolioProfile {
 
 export interface RYOpts {
   useIIS: boolean;
-  iisContribs: number; // взносы на ИИС за прошлый календарный год
+  iisYears: Record<string, number>; // год -> взносы на ИИС за этот год
 }
 
 export interface RYResult {
