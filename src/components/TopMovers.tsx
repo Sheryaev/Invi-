@@ -17,8 +17,23 @@ export default function TopMovers({ title, data, up }: Props) {
       </div>
       {data.map((m, i) => (
         <div className="row" key={i}>
-          <div className="tkr" style={{ background: m.color + '22', color: m.color }}>
-            {m.tkr.slice(0, 4)}
+          <div className="tkr" style={{ background: m.logoUrl ? '#fff' : m.color + '22', color: m.color, overflow: 'hidden', padding: 0 }}>
+            {m.logoUrl ? (
+              <img
+                src={m.logoUrl}
+                alt={m.tkr}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }}
+                onError={e => {
+                  const img = e.currentTarget;
+                  img.style.display = 'none';
+                  if (img.parentElement) {
+                    img.parentElement.style.background = m.color + '22';
+                    img.parentElement.style.padding = '';
+                    img.parentElement.textContent = m.tkr.slice(0, 4);
+                  }
+                }}
+              />
+            ) : m.tkr.slice(0, 4)}
           </div>
           <div className="row-main">
             <div className="row-name">{m.name}</div>

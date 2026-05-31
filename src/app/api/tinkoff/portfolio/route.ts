@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     );
 
     let totalDayChange = 0;
-    const movers: Array<{ tkr: string; name: string; price: number; pct: number; chg: number; color: string }> = [];
+    const movers: Array<{ tkr: string; name: string; price: number; pct: number; chg: number; color: string; logoUrl?: string }> = [];
 
     candleResults.forEach((result, i) => {
       if (result.status !== 'fulfilled') return;
@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
         pct: parseFloat(dayPct.toFixed(2)),
         chg: parseFloat((currPrice - prevClose).toFixed(2)),
         color: holdings[i].color,
+        logoUrl: holdings[i].logoUrl,
       });
     });
 

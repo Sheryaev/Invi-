@@ -42,6 +42,7 @@ export interface Mover {
   pct: number;
   chg: number;
   color: string;
+  logoUrl?: string;
 }
 
 export interface AllocationItem {
