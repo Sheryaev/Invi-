@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { calcYearDeduction, calcIISDeduction } from '@/lib/real-yield';
 import type { RYOpts } from '@/types';
 import { fmt } from '@/lib/format';
+// totalValue and invested kept in props for future use but not rendered directly
 
 function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -13,7 +14,9 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       aria-checked={checked}
       className={'switch' + (checked ? ' on' : '')}
       onClick={() => onChange(!checked)}
-    />
+    >
+      <span className="switch-knob" />
+    </button>
   );
 }
 
@@ -36,11 +39,7 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
 
   if (!open) return null;
 
-  const baseResult   = totalValue - invested;
   const iisDeduction = calcIISDeduction(depositsByYear);
-  const totalResult  = baseResult + (opts.useIIS ? iisDeduction : 0);
-  const totalPct     = invested > 0 ? (totalResult / invested) * 100 : 0;
-  const up           = totalResult >= 0;
 
   // Только годы где есть пополнения, отсортированные по убыванию
   const years = Object.keys(depositsByYear)
@@ -66,43 +65,6 @@ export default function RealYieldModal({ open, onClose, opts, setOpts, totalValu
         </div>
 
         <div className="ry-body">
-
-          {/* Итог — обновляется при тогле */}
-          <div className="ry-result-hero">
-            <div className="ry-result-val tnum" style={{ color: up ? 'var(--success)' : 'var(--danger)' }}>
-              {fmt.rub(totalResult, { sign: true })}
-            </div>
-            <div className="ry-result-pct tnum" style={{ color: up ? 'var(--success)' : 'var(--danger)' }}>
-              {fmt.pct(totalPct, { sign: true })}
-            </div>
-            <div className="ry-result-sub">
-              {opts.useIIS && iisDeduction > 0 ? 'с учётом вычета ИИС' : 'без вычета ИИС'}
-            </div>
-          </div>
-
-          {/* Разбивка */}
-          <div className="ry-breakdown">
-            <div className="ry-br-row">
-              <span>Стоимость портфеля</span>
-              <span className="tnum">{fmt.rubK(totalValue)}</span>
-            </div>
-            <div className="ry-br-row">
-              <span>Пополнено</span>
-              <span className="tnum">−{fmt.rubK(invested)}</span>
-            </div>
-            <div className="ry-br-row ry-br-sep">
-              <span>Результат портфеля</span>
-              <span className={'tnum ' + (baseResult >= 0 ? 'ry-pos' : 'ry-neg')}>
-                {fmt.rub(baseResult, { sign: true })}
-              </span>
-            </div>
-            {opts.useIIS && iisDeduction > 0 && (
-              <div className="ry-br-row">
-                <span>Вычеты ИИС (итого)</span>
-                <span className="tnum ry-pos">+{fmt.rub(iisDeduction)}</span>
-              </div>
-            )}
-          </div>
 
           {/* ИИС секция */}
           <div className="ry-iis-block">
