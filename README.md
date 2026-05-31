@@ -4,7 +4,7 @@
 
 <img width="1753" height="910" alt="da" src="https://github.com/user-attachments/assets/0b3591dd-d4a8-4714-bfd8-32fad01568e5" />
 
-## Стек
+## Стек.
 
 - **Next.js 14** (App Router)
 - **React 18**
