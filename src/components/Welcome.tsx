@@ -13,12 +13,41 @@ export default function Welcome({ theme, toggleTheme, onDemo, onConnect }: Welco
   const [key, setKey] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const valid = key.trim().length >= 8;
 
-  const submit = () => {
+  const submit = async () => {
     if (!valid || busy) return;
     setBusy(true);
-    setTimeout(() => onConnect({ name: '', broker: 'tinkoff', key: key.trim() }), 750);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/tinkoff/accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key.trim()}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!res.ok) {
+        const isAuth = res.status === 401 || res.status === 403;
+        setError(isAuth
+          ? 'Неверный API-ключ. Проверьте токен в настройках T-Инвестиций.'
+          : `Ошибка подключения (${res.status}). Попробуйте ещё раз.`
+        );
+        return;
+      }
+
+      // Ключ рабочий — переходим на дашборд
+      onConnect({ name: '', broker: 'tinkoff', key: key.trim() });
+    } catch {
+      setError('Не удалось подключиться. Проверьте интернет и попробуйте снова.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -48,12 +77,12 @@ export default function Welcome({ theme, toggleTheme, onDemo, onConnect }: Welco
           <div className="welcome-fields">
             <label className="field">
               <span className="field-label">API-ключ Т-Инвестиций</span>
-              <div className="input-wrap">
+              <div className={'input-wrap' + (error ? ' input-error' : '')}>
                 <span className="input-ic"><Icon name="link" size={16} /></span>
                 <input
                   type={show ? 'text' : 'password'}
                   value={key}
-                  onChange={e => setKey(e.target.value)}
+                  onChange={e => { setKey(e.target.value); setError(null); }}
                   placeholder="t.xxxxxxxxxxxxxxxxxxxx"
                   spellCheck={false}
                   autoFocus
@@ -63,7 +92,10 @@ export default function Welcome({ theme, toggleTheme, onDemo, onConnect }: Welco
                   <Icon name={show ? 'eyeOff' : 'eye'} size={16} />
                 </button>
               </div>
-              <span className="field-hint">Ключ хранится только в этом браузере и используется для чтения позиций.</span>
+              {error
+                ? <span className="field-error"><Icon name="alert" size={13} /> {error}</span>
+                : <span className="field-hint">Ключ хранится только в этом браузере и используется для чтения позиций.</span>
+              }
             </label>
           </div>
 
@@ -72,7 +104,10 @@ export default function Welcome({ theme, toggleTheme, onDemo, onConnect }: Welco
             onClick={submit}
             disabled={!valid || busy}
           >
-            {busy ? <><span className="spinner" /> Подключение…</> : <><Icon name="plus" size={16} stroke={2.2} /> Добавить портфель</>}
+            {busy
+              ? <><span className="spinner" /> Проверка ключа…</>
+              : <><Icon name="plus" size={16} stroke={2.2} /> Добавить портфель</>
+            }
           </button>
 
           <div className="welcome-foot">
