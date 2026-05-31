@@ -11,6 +11,7 @@ import HoldingsTable from '@/components/HoldingsTable';
 import EmptyState from '@/components/EmptyState';
 import AddPortfolioModal from '@/components/AddPortfolioModal';
 import RealYieldModal from '@/components/RealYieldModal';
+import SkeletonDashboard from '@/components/SkeletonDashboard';
 import { BASE_PORTFOLIO, DEMO_PORTFOLIOS } from '@/lib/demo-data';
 import { deriveView, makePortfolioFromKey, RY_DEFAULTS, realYield } from '@/lib/real-yield';
 import { useTinkoffPortfolio } from '@/hooks/useTinkoffPortfolio';
@@ -57,7 +58,7 @@ function SummaryStat({ label, value, dot, hatch, last }: { label: string; value:
 
 export default function Dashboard() {
   const [accent, setAccent] = useState('blue');
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState<boolean | null>(null);
   const [portfolio, setPortfolioRaw] = useState('all');
   const [tab, setTabRaw] = useState('overview');
   const [onboarded, setOnboarded] = useState(false);
@@ -74,19 +75,24 @@ export default function Dashboard() {
   // Load from localStorage after mount
   useEffect(() => {
     setMounted(true);
-    const saved = (key: string, fallback: string) => typeof window !== 'undefined' ? (localStorage.getItem(key) || fallback) : fallback;
-    setOnboarded(saved('invest_onboarded', '') === '1');
-    setPortfolioRaw(saved('invest_portfolio', 'all'));
-    setTabRaw(saved('invest_tab', 'overview'));
-    try { setCustom(JSON.parse(localStorage.getItem('invest_custom') || '[]')); } catch {}
-    try { setKeys(JSON.parse(localStorage.getItem('invest_keys') || '{}')); } catch {}
-    try { setRyOptsRaw({ ...RY_DEFAULTS, ...JSON.parse(localStorage.getItem('invest_ry') || '{}') }); } catch {}
+    const ls = (key: string) => localStorage.getItem(key);
+    setOnboarded(ls('invest_onboarded') === '1');
+    setPortfolioRaw(ls('invest_portfolio') || 'all');
+    setTabRaw(ls('invest_tab') || 'overview');
+    // Theme: saved preference or system
+    const savedTheme = ls('invest_theme');
+    setDark(savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
+    try { setCustom(JSON.parse(ls('invest_custom') || '[]')); } catch {}
+    try { setKeys(JSON.parse(ls('invest_keys') || '{}')); } catch {}
+    try { setRyOptsRaw({ ...RY_DEFAULTS, ...JSON.parse(ls('invest_ry') || '{}') }); } catch {}
   }, []);
 
   // Theme
   useEffect(() => {
-    if (!mounted) return;
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    if (!mounted || dark === null) return;
+    const t = dark ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    localStorage.setItem('invest_theme', t);
   }, [dark, mounted]);
 
   // Accent colors
@@ -175,7 +181,7 @@ export default function Dashboard() {
 
   const ry = realYield(prof, ryOpts);
 
-  const theme = dark ? 'dark' : 'light';
+  const theme = dark === false ? 'light' : 'dark';
 
   if (!mounted) return null;
 
@@ -225,7 +231,9 @@ export default function Dashboard() {
           <TabsNav tabs={TABS} active={tab} onChange={setTab} />
         </div>
 
-        {tab === 'overview' && (
+        {tab === 'overview' && tinkoffLoading && <SkeletonDashboard />}
+
+        {tab === 'overview' && !tinkoffLoading && (
           <div className="grid">
             <KpiRow P={P} ry={ry} onOpenRY={() => setRyModal(true)} />
 
