@@ -37,14 +37,12 @@ export default function TopMovers({ title, data, up }: Props) {
           </div>
           <div className="row-main">
             <div className="row-name">{m.name}</div>
-            <div className="row-sub tnum">{fmt.price(m.price)}</div>
           </div>
           <div className="row-right">
-            <div className={'delta ' + (up ? 'up' : 'down')} style={{ justifyContent: 'flex-end' }}>
+            <div className="row-amt tnum">{fmt.price(m.price)}</div>
+            <div className={'delta ' + (up ? 'up' : 'down')} style={{ justifyContent: 'flex-end', marginTop: 3 }}>
               <Tri up={up} /> {fmt.pct(Math.abs(m.pct), { sign: false })}
-            </div>
-            <div className="row-amt-sub tnum" style={{ color: 'var(--fg-muted)', marginTop: 3 }}>
-              {(m.chg > 0 ? '+' : '') + fmt.rub(m.chg)}
+              <span style={{ opacity: 0.75, marginLeft: 3 }}>({(m.chg > 0 ? '+' : '') + fmt.rub(m.chg)})</span>
             </div>
           </div>
         </div>
