@@ -42,7 +42,7 @@ function ResultCard({ P, profit, iisDeduction, hidden, onOpenRY }: {
   const dayUp = P.dayChange >= 0;
 
   return (
-    <div className="card col-6">
+    <div className="card col-6 kpi-result">
       <div className="kpi2-head">
         <span className="kpi2-ic" style={{ color: up ? 'var(--success)' : 'var(--danger)' }}>
           <Icon name="trend" size={15} stroke={2} />

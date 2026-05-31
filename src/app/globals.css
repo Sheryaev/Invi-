@@ -367,7 +367,13 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);-webkit-font-s
 @media(max-width:720px){.htbl-row{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);row-gap:6px;}.htbl-headrow{display:none;}.htbl-price{font-size:12.5px;gap:5px;}.htbl-c.col-hide{display:none;}}
 
 /* Responsive */
-@media(max-width:1080px){.col-3{grid-column:span 6;}}
+@media(max-width:1080px){
+  .col-3{grid-column:span 6;}
+  /* Результат портфеля переносится на новую строку полной шириной,
+     Стоимость + Пассивный доход остаются рядом в первой строке */
+  .kpi-result{grid-column:span 12;order:3;}
+  .kpi-result+.card{order:2;}
+}
 @media(max-width:920px){.col-8{grid-column:span 12;}.col-4{grid-column:span 12;}.col-5,.col-7{grid-column:span 12;}.col-6{grid-column:span 12;}}
 @media(max-width:560px){.col-3{grid-column:span 12;}.page-bar{flex-direction:column;gap:12px;}}
 
