@@ -117,8 +117,6 @@ export interface PortfolioProfile {
 
 export interface RYOpts {
   useIIS: boolean;
-  iisContribs: number;  // взносы на ИИС за прошлый год, руб
-  ndflPaid: number;     // уплаченный НДФЛ (ограничение вычета), 0 = без ограничения
 }
 
 export interface RYResult {
