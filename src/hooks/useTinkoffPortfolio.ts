@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import type { Portfolio } from '@/types';
-import { BASE_PORTFOLIO } from '@/lib/demo-data';
 
 interface TinkoffAccount {
   id: string;
@@ -42,7 +41,6 @@ export function useTinkoffPortfolio(token: string | null) {
       setError(null);
 
       try {
-        // Get accounts
         const acctData = await apiFetch('/api/tinkoff/accounts', {}, token!);
         if (cancelled) return;
 
@@ -53,12 +51,8 @@ export function useTinkoffPortfolio(token: string | null) {
         }));
         setAccounts(accts);
 
-        if (accts.length === 0) {
-          setLoading(false);
-          return;
-        }
+        if (accts.length === 0) { setLoading(false); return; }
 
-        // Fetch first account's portfolio
         const firstAccountId = accts[0].id;
         const [portData, divData] = await Promise.all([
           apiFetch('/api/tinkoff/portfolio', { accountId: firstAccountId }, token!),
@@ -67,20 +61,22 @@ export function useTinkoffPortfolio(token: string | null) {
 
         if (cancelled) return;
 
-        // Merge with base portfolio
-        const months = divData?.months || BASE_PORTFOLIO.months;
+        const months = divData?.months || [];
         let paid = 0, announced = 0, forecast = 0;
         months.forEach((m: any) => { paid += m.paid || 0; announced += m.announced || 0; forecast += m.forecast || 0; });
 
         setPortfolioData({
-          totalValue: portData.totalValue || BASE_PORTFOLIO.totalValue,
-          invested: portData.invested || BASE_PORTFOLIO.invested,
-          dayChange: portData.dayChange || 0,
-          dayChangePct: portData.dayChangePct || 0,
-          totalReturnPct: portData.totalReturnPct || 0,
-          holdings: portData.holdings?.length > 0 ? portData.holdings : BASE_PORTFOLIO.holdings,
-          months,
+          totalValue: portData.totalValue,
+          invested: portData.invested,
+          dayChange: portData.dayChange ?? 0,
+          dayChangePct: portData.dayChangePct ?? 0,
+          totalReturnPct: portData.totalReturnPct ?? 0,
+          holdings: portData.holdings ?? [],
+          gainers: portData.gainers ?? [],
+          losers: portData.losers ?? [],
+          months: months.length > 0 ? months : undefined,
           sum: { paid, announced, forecast, total: paid + announced + forecast },
+          upcoming: divData?.upcoming ?? [],
         });
       } catch (e: any) {
         if (!cancelled) setError(e.message);

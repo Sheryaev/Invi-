@@ -157,14 +157,18 @@ export default function Dashboard() {
   const { portfolioData, loading: tinkoffLoading, error: tinkoffError } = useTinkoffPortfolio(activeToken);
 
   const baseView = deriveView(BASE_PORTFOLIO, prof);
+  // When real API data is present — never show demo data for any field
   const P = portfolioData ? {
     ...baseView,
     totalValue: portfolioData.totalValue ?? baseView.totalValue,
     invested: portfolioData.invested ?? baseView.invested,
-    dayChange: portfolioData.dayChange ?? baseView.dayChange,
-    dayChangePct: portfolioData.dayChangePct ?? baseView.dayChangePct,
-    totalReturnPct: portfolioData.totalReturnPct ?? baseView.totalReturnPct,
-    holdings: portfolioData.holdings ?? baseView.holdings,
+    dayChange: portfolioData.dayChange ?? 0,
+    dayChangePct: portfolioData.dayChangePct ?? 0,
+    totalReturnPct: portfolioData.totalReturnPct ?? 0,
+    holdings: portfolioData.holdings ?? [],
+    gainers: portfolioData.gainers ?? [],
+    losers: portfolioData.losers ?? [],
+    upcoming: portfolioData.upcoming ?? [],
     months: portfolioData.months ?? baseView.months,
     sum: portfolioData.sum ?? baseView.sum,
   } : baseView;

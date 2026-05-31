@@ -76,3 +76,9 @@ export async function getCandles(token: string, figi: string, from: string, to: 
     interval: 'CANDLE_INTERVAL_DAY',
   }, token);
 }
+
+export async function getBondCoupons(token: string, figi: string) {
+  const from = new Date().toISOString();
+  const to = new Date(new Date().getFullYear() + 1, 6, 1).toISOString();
+  return tinkoffPost<any>('InstrumentsService', 'GetBondCoupons', { figi, from, to }, token);
+}
