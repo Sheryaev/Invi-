@@ -87,8 +87,22 @@ export default function HoldingsTable({ P }: { P: Portfolio }) {
           return (
             <div className="htbl-row" key={i}>
               <div className="htbl-asset">
-                <div className="htbl-logo" style={{ background: h.color }}>
-                  {h.glyph}
+                <div className="htbl-logo" style={{ background: h.logoUrl ? '#fff' : h.color }}>
+                  {h.logoUrl ? (
+                    <img
+                      src={h.logoUrl}
+                      alt={h.tkr}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }}
+                      onError={e => {
+                        const img = e.currentTarget;
+                        img.style.display = 'none';
+                        if (img.parentElement) {
+                          img.parentElement.style.background = h.color;
+                          img.parentElement.textContent = h.glyph;
+                        }
+                      }}
+                    />
+                  ) : h.glyph}
                 </div>
                 <div className="htbl-asset-tx">
                   <div className="htbl-name">{h.name}</div>

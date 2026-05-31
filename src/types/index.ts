@@ -14,6 +14,7 @@ export interface Holding {
   price: number;
   qty: number;
   color: string;
+  logoUrl?: string;
 }
 
 export interface TopAsset {

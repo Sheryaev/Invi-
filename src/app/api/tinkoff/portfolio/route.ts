@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPortfolio, getAccounts, getLastPrices, moneyToNumber } from '@/lib/tinkoff';
-
-const MONTH_NAMES = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+import { getPortfolio, getLastPrices, getInstrumentBy, getCandles, moneyToNumber } from '@/lib/tinkoff';
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -11,8 +9,7 @@ export async function POST(req: NextRequest) {
   const token = auth.slice(7);
 
   try {
-    const body = await req.json();
-    const { accountId } = body;
+    const { accountId } = await req.json();
 
     const data = await getPortfolio(token, accountId);
     const positions: any[] = data.positions || [];
@@ -20,52 +17,84 @@ export async function POST(req: NextRequest) {
     const totalValue = moneyToNumber(data.totalAmountPortfolio);
     const expectedYield = moneyToNumber(data.expectedYield);
 
-    // Build holdings from positions
+    const figis = positions.filter((p: any) => p.figi).map((p: any) => p.figi as string);
+
+    // Fetch last prices, instrument info, and candles for day change — all in parallel
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 5);
+    const fromDate = threeDaysAgo.toISOString();
+    const toDate = new Date().toISOString();
+
+    const [priceData, ...instrumentResults] = await Promise.all([
+      figis.length > 0 ? getLastPrices(token, figis).catch(() => ({ lastPrices: [] })) : Promise.resolve({ lastPrices: [] }),
+      ...figis.map(figi => getInstrumentBy(token, figi).catch(() => null)),
+    ]);
+
+    const priceMap: Record<string, number> = {};
+    (priceData.lastPrices || []).forEach((lp: any) => {
+      priceMap[lp.figi] = moneyToNumber(lp.price);
+    });
+
+    const instrMap: Record<string, { name: string; ticker: string; color: string; logoUrl?: string }> = {};
+    figis.forEach((figi, i) => {
+      const inst = instrumentResults[i]?.instrument;
+      if (!inst) return;
+      const logoName = inst.brand?.logoName;
+      instrMap[figi] = {
+        name: inst.name || figi,
+        ticker: inst.ticker || figi.slice(-6),
+        color: inst.brand?.logoBaseColor || colorForType(inst.instrumentType || ''),
+        logoUrl: logoName ? `https://invest-brands.cdn-tinkoff.ru/${logoName}x160.png` : undefined,
+      };
+    });
+
+    // Build holdings
     const holdings = positions
       .filter((p: any) => p.figi)
       .map((p: any) => {
-        const currentPrice = moneyToNumber(p.currentPrice);
+        const info = instrMap[p.figi] || {};
+        const currentPrice = priceMap[p.figi] || moneyToNumber(p.currentPrice);
         const averagePrice = moneyToNumber(p.averagePositionPrice);
         const qty = Number(p.quantity?.units || 0);
-        const value = moneyToNumber(p.currentNkd) + currentPrice * qty;
 
         return {
-          tkr: p.ticker || p.figi.slice(-6),
-          name: p.name || p.figi,
-          figi: p.figi,
-          glyph: (p.ticker || p.figi).slice(0, 4),
+          tkr: info.ticker || p.ticker || p.figi.slice(-6),
+          name: info.name || p.figi,
+          figi: p.figi as string,
+          glyph: (info.ticker || p.ticker || p.figi).slice(0, 4),
           entry: averagePrice,
           price: currentPrice,
           qty,
-          color: colorForType(p.instrumentType),
+          color: info.color || colorForType(p.instrumentType),
+          logoUrl: info.logoUrl,
         };
       });
 
-    // Fetch last prices for all positions
-    const figis = positions.filter((p: any) => p.figi).map((p: any) => p.figi);
-    let priceMap: Record<string, number> = {};
-    if (figis.length > 0) {
-      try {
-        const priceData = await getLastPrices(token, figis);
-        (priceData.lastPrices || []).forEach((lp: any) => {
-          priceMap[lp.figi] = moneyToNumber(lp.price);
-        });
-      } catch {}
-    }
-
-    // Update current prices
-    holdings.forEach(h => {
-      if (priceMap[h.figi]) h.price = priceMap[h.figi];
+    // Calculate day change from daily candles (parallel)
+    let dayChange = 0;
+    const candleResults = await Promise.allSettled(
+      holdings.map(h =>
+        getCandles(token, h.figi, fromDate, toDate).catch(() => null)
+      )
+    );
+    candleResults.forEach((result, i) => {
+      if (result.status !== 'fulfilled' || !result.value) return;
+      const candles = result.value.candles || [];
+      if (candles.length < 2) return;
+      const prevClose = moneyToNumber(candles[candles.length - 2].close);
+      const currPrice = holdings[i].price;
+      dayChange += holdings[i].qty * (currPrice - prevClose);
     });
 
     const invested = totalValue - expectedYield;
+    const investedSafe = invested > 0 ? invested : totalValue * 0.85;
 
     return NextResponse.json({
       totalValue,
-      invested: invested > 0 ? invested : totalValue * 0.85,
-      dayChange: 0,
-      dayChangePct: 0,
-      totalReturnPct: invested > 0 ? (expectedYield / invested) * 100 : 0,
+      invested: investedSafe,
+      dayChange: Math.round(dayChange),
+      dayChangePct: totalValue > 0 ? (dayChange / totalValue) * 100 : 0,
+      totalReturnPct: investedSafe > 0 ? (expectedYield / investedSafe) * 100 : 0,
       holdings,
       positions: positions.length,
     });
@@ -75,7 +104,12 @@ export async function POST(req: NextRequest) {
 }
 
 function colorForType(type: string): string {
-  switch (type) {
+  const t = String(type).toLowerCase();
+  if (t.includes('share')) return '#21a038';
+  if (t.includes('bond')) return '#006FEE';
+  if (t.includes('etf')) return '#9353d3';
+  if (t.includes('currency')) return '#f5a524';
+  switch (t) {
     case 'share': return '#21a038';
     case 'bond': return '#006FEE';
     case 'etf': return '#9353d3';

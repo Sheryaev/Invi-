@@ -149,7 +149,8 @@ export default function Dashboard() {
     setTimeout(() => { setLastUpd(new Date()); setRefreshing(false); }, 950);
   };
 
-  const portfolios = [...DEMO_PORTFOLIOS, ...custom];
+  // When real portfolios are connected, show only those (not demo data)
+  const portfolios = custom.length > 0 ? custom : DEMO_PORTFOLIOS;
   const prof = portfolios.find(p => p.id === portfolio) || portfolios[0];
 
   const activeToken = prof?.custom && prof.broker === 'tinkoff' ? (keys[prof.id] ?? null) : null;
