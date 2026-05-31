@@ -1,25 +1,42 @@
-# CODING AGENTS: READ THIS FIRST
+# Инви — инвестиционный дашборд
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+Персональный дашборд для отслеживания инвестиционного портфеля через T-Invest API (Т-Банк). Показывает стоимость портфеля, доходность, пассивный доход по дивидендам и купонам, ближайшие выплаты, топ роста и падений за день.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+## Стек
 
-## What you should do — IMPORTANT
+- **Next.js 14** (App Router)
+- **React 18**
+- **T-Invest API** — данные о портфеле, ценах, дивидендах и купонах в реальном времени
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+## Запуск
 
-**Read `project/invest/Инвест-дашборд.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+### 1. Установить зависимости
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+```bash
+npm install
+```
 
-## About the design files
+### 2. Запустить в режиме разработки
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+```bash
+npm run dev
+```
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+Приложение откроется на [http://localhost:3000](http://localhost:3000).
 
-## Bundle contents
+### 3. Подключить портфель
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Invest` project files (HTML prototypes, assets, components)
+При первом открытии нужно ввести токен T-Invest API:
+
+1. Получи токен в приложении Т-Инвестиции: **Профиль → Настройки → Токен для T-Invest API**
+2. Введи токен в поле на экране приветствия
+3. Выбери нужный счёт из списка
+
+Токен хранится только в браузере (localStorage) и никуда не отправляется кроме T-Invest API.
+
+## Сборка для продакшена
+
+```bash
+npm run build
+npm run start
+```
