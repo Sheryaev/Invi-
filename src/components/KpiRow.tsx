@@ -36,8 +36,6 @@ function KpiCard({ icon, iconColor, label, value, delta, deltaUp, sub, action, o
 function ResultCard({ P, profit, hidden, onOpenRY }: { P: Portfolio; profit: number; hidden: boolean; onOpenRY: () => void }) {
   const up = profit >= 0;
   const dayUp = P.dayChange >= 0;
-  const profitStr = hidden ? '••• •••' : (fmt.rubK(Math.abs(profit)) + (up ? '' : ''));
-  const profitDisp = hidden ? '••• •••' : ((up ? '+' : '−') + fmt.rubK(Math.abs(profit)).replace('₽', '') + (fmt.rubK(Math.abs(profit)).includes('млн') ? '' : ''));
 
   return (
     <div className="card col-6">
@@ -53,7 +51,7 @@ function ResultCard({ P, profit, hidden, onOpenRY }: { P: Portfolio; profit: num
       <div className="result-body">
         <div className="result-main">
           <span className="result-big tnum">
-            {hidden ? '••• •••' : (up ? '+' : '−') + fmt.rubK(Math.abs(profit)).replace('₽', '₽')}
+            {hidden ? '••• •••' : (up ? '+' : '−') + fmt.rubK(Math.abs(profit))}
           </span>
           <span className={'delta ' + (up ? 'up' : 'down')} style={{ fontSize: 14 }}>
             <Tri up={up} size={10} /> {fmt.pct(P.totalReturnPct, { sign: true })} <span className="delta-cap">доходность</span>
